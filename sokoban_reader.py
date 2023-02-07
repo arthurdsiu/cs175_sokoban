@@ -30,12 +30,38 @@ def read_sokoban(input_location: str) -> dict:
     except Exception as E:
         print(f"Error Parsing File\n{E}")
 
+    WALL = 1
+    BOXES = 2
+    STORAGE = 3
+    PLAYER_LOCATION = 4
     try:
         sokoban_board = np.zeros( (input_split[0][0], input_split[0][1]), dtype=int )
-        #print(sokoban_board.shape)
-        print("Hi")
+        print("\nwall")
+        for i in range(1, 2*(input_split[WALL][0]) + 1, 2):
+            y = input_split[WALL][i] - 1
+            x = input_split[WALL][i+1] - 1
+            print(f"{i},{i+1},{x},{y}")
+            sokoban_board[y][x] = WALL
+
+        print("\nboxes")
+        for i in range(1, 2*(input_split[BOXES][0]) + 1, 2):
+            y = input_split[BOXES][i] - 1
+            x = input_split[BOXES][i+1] - 1
+            print(f"{i},{i+1},{x},{y}")
+            sokoban_board[y][x] = BOXES
+
+        print("\nstorage")
+        for i in range(1, 2*(input_split[STORAGE][0]) + 1, 2):
+            y = input_split[STORAGE][i] - 1 
+            x = input_split[STORAGE][i+1] - 1
+            print(f"{i},{i+1},{x},{y}")
+            sokoban_board[y][x] = STORAGE 
+
+        y = input_split[PLAYER_LOCATION][0] - 1
+        x = input_split[PLAYER_LOCATION][1] - 1
+        sokoban_board[y][x] = PLAYER_LOCATION
 
     except Exception as E:
         print(f"Error converting to np array\n{E}")
 
-    return result
+    return result, sokoban_board
