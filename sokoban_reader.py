@@ -1,3 +1,5 @@
+import numpy as np
+
 def read_sokoban(input_location: str) -> dict:
     """Reads sokoban file"""
     try:
@@ -7,6 +9,14 @@ def read_sokoban(input_location: str) -> dict:
         print("Error Accessing File")
         return
 
+    input_split = list()
+    for line in input_lines:
+        row = list()
+        for num in line.split():
+            row.append(int(num))
+        input_split.append(row)        
+    #print(input_split)
+    #print(f"Sokoban board size: {input_split[0][0]} {input_split[0][1]} ")
     try:
         result = dict()
         result["size"] = [int(i) for i in input_lines[0].split(" ")]
@@ -19,4 +29,13 @@ def read_sokoban(input_location: str) -> dict:
         result["initlocation"] = [int(i) for i in input_lines[4].split(" ")]
     except Exception as E:
         print(f"Error Parsing File\n{E}")
+
+    try:
+        sokoban_board = np.zeros( (input_split[0][0], input_split[0][1]), dtype=int )
+        #print(sokoban_board.shape)
+        print("Hi")
+
+    except Exception as E:
+        print(f"Error converting to np array\n{E}")
+
     return result
