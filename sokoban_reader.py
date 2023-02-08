@@ -1,5 +1,8 @@
 import numpy as np
+import globals as g
 
+#Note: It's assumed that the file will never have conflicting coordinates
+#this function won't work correctly if that happens. This includex boxes on top of goals
 def read_sokoban(input_location: str) -> dict:
     """Reads sokoban file"""
     try:
@@ -30,10 +33,10 @@ def read_sokoban(input_location: str) -> dict:
     except Exception as E:
         print(f"Error Parsing File\n{E}")
 
-    WALL = 1
-    BOXES = 2
-    STORAGE = 3
-    PLAYER_LOCATION = 4
+    WALL = g.WALL
+    BOXES =  g.BOXES
+    STORAGE = g.STORAGE
+    PLAYER_LOCATION = g.PLAYER_LOCATION
     try:
         sokoban_board = np.zeros( (input_split[0][0], input_split[0][1]), dtype=int )
         print("\nwall")

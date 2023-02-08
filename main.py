@@ -1,5 +1,6 @@
 import sys
 from sokoban_reader import read_sokoban
+from sokoban_game import Sokoban
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
@@ -10,3 +11,6 @@ if __name__ == '__main__':
     print(board)
     #n_boxes = result["n_boxes"]
     #print(f"The number of boxes in this sokoban is {n_boxes}")
+    game = Sokoban(board)
+    print(game.board)
+    print(game.playerPosition)
