@@ -45,14 +45,15 @@ class Sokoban:
         if(self.board[newPos[0]][newPos[1]] == g.WALL):
             return False
         if(self.board[newPos[0]][newPos[1]] == g.BOXES):
-            self.playerPosition = tuple(newPos)
             if self.emptyPosition(newBoxPos):
+                self.playerPosition = tuple(newPos)
                 self.board[newPos[0]][newPos[1]] = g.EMPTY
                 self.board[newBoxPos[0]][newBoxPos[1]] = g.BOXES
-                #print(self.board)
                 if self.boxesRemaining() == 0:
                     self.completed = True        
                 return True
+            else:
+                return False
             return False
         #I should throw Exception here
         return False

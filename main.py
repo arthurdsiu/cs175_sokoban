@@ -27,9 +27,7 @@ if __name__ == '__main__':
             game.movePlayer(g.DOWN)
         if(char == 'd'):
             game.movePlayer(g.RIGHT)
-        game.board[game.playerPosition[0]][game.playerPosition[1]]= 9
         game.printBoard()
-        game.board[game.playerPosition[0]][game.playerPosition[1]]= 0
 
 
         
