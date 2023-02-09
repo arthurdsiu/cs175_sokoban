@@ -49,7 +49,7 @@ class Sokoban:
             if self.emptyPosition(newBoxPos):
                 self.board[newPos[0]][newPos[1]] = g.EMPTY
                 self.board[newBoxPos[0]][newBoxPos[1]] = g.BOXES
-                print(self.board)
+                #print(self.board)
                 if self.boxesRemaining() == 0:
                     self.completed = True        
                 return True
@@ -64,4 +64,20 @@ class Sokoban:
                 boxes -=1
         return boxes
 
-    
+    def printBoard(self):
+        temp = self.board.tolist()
+        for i in range(len(temp)):
+            for j in range (len(temp[0])):
+                if temp[i][j] == 0:
+                    temp[i][j] = ' '
+                if temp[i][j] == 1:
+                    temp[i][j] = '|'
+        for element in self.goals:
+            if( temp[element[0]][element[1]] != g.BOXES):
+                temp[element[0]][element[1]] = '_'
+        temp[self.playerPosition[0]][self.playerPosition[1]] = 'P'
+        for line in temp:
+            for elem in line:
+                print(elem, end='')
+            print()
+        print()
