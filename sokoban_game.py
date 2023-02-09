@@ -52,8 +52,6 @@ class Sokoban:
                 if self.boxesRemaining() == 0:
                     self.completed = True        
                 return True
-            else:
-                return False
             return False
         #I should throw Exception here
         return False
