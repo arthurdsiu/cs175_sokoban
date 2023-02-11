@@ -16,6 +16,9 @@ if __name__ == '__main__':
     game = Sokoban(board)
     cont = True
     while(cont):
+        if game.completed:
+            print("you won!")
+            exit()
         char = getch.getch()
         if(char == 'q'):
             cont = False
