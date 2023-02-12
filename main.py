@@ -6,7 +6,9 @@ from sokoban_game import Sokoban
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
-        result = read_sokoban(input("Please enter file location: "))
+        str  = input("Please enter file location: ")
+        print(str)
+        result, board = read_sokoban(str)
     else:
         result, board = read_sokoban(sys.argv[1])
     #print(result)
