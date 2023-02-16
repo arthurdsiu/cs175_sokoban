@@ -12,6 +12,7 @@ class Sokoban:
         self.board = board
         #find the player position and replace with an empty tile
         #find storage and replace with empty tiles
+        #boxes remain the same
         for y in range(board.shape[0]):
             for x in range(board.shape[1]):
                 if(board[y][x] == g.PLAYER_LOCATION):
@@ -124,25 +125,25 @@ class Sokoban:
         PLAYER_LOCATION = g.PLAYER_LOCATION
         try:
             sokoban_board = np.zeros( (input_split[0][0], input_split[0][1]), dtype=int )
-            print("\nwall")
+            # print("\nwall")
             for i in range(1, 2*(input_split[WALL][0]) + 1, 2):
                 y = input_split[WALL][i] - 1
                 x = input_split[WALL][i+1] - 1
-                print(f"x{x},y{y}")
+                # print(f"x{x},y{y}")
                 sokoban_board[y][x] = WALL
 
-            print("\nboxes")
+            # print("\nboxes")
             for i in range(1, 2*(input_split[BOXES][0]) + 1, 2):
                 y = input_split[BOXES][i] - 1
                 x = input_split[BOXES][i+1] - 1
-                print(f"x{x},y{y}")
+                # print(f"x{x},y{y}")
                 sokoban_board[y][x] = BOXES
 
-            print("\nstorage")
+            # print("\nstorage")
             for i in range(1, 2*(input_split[STORAGE][0]) + 1, 2):
                 y = input_split[STORAGE][i] - 1 
                 x = input_split[STORAGE][i+1] - 1
-                print(f"x{x},y{y}")
+                # print(f"x{x},y{y}")
                 sokoban_board[y][x] = STORAGE 
 
             y = input_split[PLAYER_LOCATION][0] - 1

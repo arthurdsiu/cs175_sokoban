@@ -1,5 +1,4 @@
 import numpy as np
-import globals as g
 
 #Note: It's assumed that the file will never have conflicting coordinates
 #this function won't work correctly if that happens. This includex boxes on top of goals

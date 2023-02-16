@@ -11,10 +11,6 @@ if __name__ == '__main__':
         game = Sokoban(Sokoban.readFile(str))
     else:
         game = Sokoban(Sokoban.readFile(sys.argv[1]))
-    #print(result)
-    #print(board)
-    #n_boxes = result["n_boxes"]
-    #print(f"The number of boxes in this sokoban is {n_boxes}")
     
     cont = True
     while(cont):
