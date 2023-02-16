@@ -6,6 +6,7 @@ class Sokoban:
     playerPosition = (0,0) #(y,x)
     goals = list()
     completed = False
+    moveHistory= ''
     
     def __init__(self, board):
         self.board = board
@@ -29,18 +30,23 @@ class Sokoban:
         if direction == g.DOWN:
             newPos[0] += 1
             newBoxPos[0] +=2
+            move = 'D'
         if direction == g.UP:
             newPos[0] -= 1
             newBoxPos[0] -=2
+            move = 'U'
         if direction == g.LEFT:
             newPos[1] -= 1
             newBoxPos[1] -=2
+            move = 'L'
         if direction == g.RIGHT:
             newPos[1] += 1
             newBoxPos[1] +=2
+            move = 'R'
 
         if self.emptyPosition(newPos):
             self.playerPosition = tuple(newPos)
+            self.moveHistory += move
             return True
         if(self.board[newPos[0]][newPos[1]] == g.WALL):
             return False
@@ -50,7 +56,8 @@ class Sokoban:
                 self.board[newPos[0]][newPos[1]] = g.EMPTY
                 self.board[newBoxPos[0]][newBoxPos[1]] = g.BOXES
                 if self.boxesRemaining() == 0:
-                    self.completed = True        
+                    self.completed = True
+                self.moveHistory += move           
                 return True
             return False
         #I should throw Exception here
@@ -80,3 +87,69 @@ class Sokoban:
                 print(elem, end='')
             print()
         print()
+
+    def autoMove(self, moves):
+        print("Beginning Auto Move")
+        for i,v in enumerate(moves):
+            print(v,end="")
+            if v == 'U':
+                self.movePlayer(g.UP)
+            if v == 'D':
+                self.movePlayer(g.DOWN)
+            if v == 'L':
+                self.movePlayer(g.LEFT)
+            if v == 'R':
+                self.movePlayer(g.RIGHT)
+        print("\n\nAuto move finished")
+            
+
+    @staticmethod
+    def readFile(inputLocation: str):
+        try:
+            with open(inputLocation, "r") as f:
+                inputLines = [i.strip() for i in f.readlines()]
+        except FileNotFoundError:
+            print("Error Accessing File")
+            return
+        input_split = list()
+        for line in inputLines:
+            row = list()
+            for num in line.split():
+                row.append(int(num))
+            input_split.append(row)  
+
+        WALL = g.WALL
+        BOXES =  g.BOXES
+        STORAGE = g.STORAGE
+        PLAYER_LOCATION = g.PLAYER_LOCATION
+        try:
+            sokoban_board = np.zeros( (input_split[0][0], input_split[0][1]), dtype=int )
+            print("\nwall")
+            for i in range(1, 2*(input_split[WALL][0]) + 1, 2):
+                y = input_split[WALL][i] - 1
+                x = input_split[WALL][i+1] - 1
+                print(f"x{x},y{y}")
+                sokoban_board[y][x] = WALL
+
+            print("\nboxes")
+            for i in range(1, 2*(input_split[BOXES][0]) + 1, 2):
+                y = input_split[BOXES][i] - 1
+                x = input_split[BOXES][i+1] - 1
+                print(f"x{x},y{y}")
+                sokoban_board[y][x] = BOXES
+
+            print("\nstorage")
+            for i in range(1, 2*(input_split[STORAGE][0]) + 1, 2):
+                y = input_split[STORAGE][i] - 1 
+                x = input_split[STORAGE][i+1] - 1
+                print(f"x{x},y{y}")
+                sokoban_board[y][x] = STORAGE 
+
+            y = input_split[PLAYER_LOCATION][0] - 1
+            x = input_split[PLAYER_LOCATION][1] - 1
+            sokoban_board[y][x] = PLAYER_LOCATION
+
+        except Exception as E:
+            print(f"Error converting to np array\n{E}")
+
+        return sokoban_board
