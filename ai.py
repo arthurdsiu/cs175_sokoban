@@ -26,36 +26,90 @@ class Deadlock:
 class AI:
     deadlock = None
     board = np.zeros((0,0))
-    startLocation = None
+    startPosition = None
     goals = None
-    path = str
+
     
     def __init__(self, nparray):
         game = sokoban_game.Sokoban(nparray)
         self.board =  game.board
-        self.startLocation = game.playerPosition
+        self.startPosition = game.playerPosition
         self.goals = game.goals
         deadlock = Deadlock(self.board, self.goals)
 
     def dfsSolver(self):
-        self.startTime = time.time()
-        #clear out visited array
-        #initilize state to starting board state
-        solved = self.dfs()
-        if solved:
-            return self.path
-        return None
+        startTime = time.time()
+        path = list()
+        board = self.board
 
-    def dfs(self):
-        if time.time() - self.startTime  > g.TIME_LIMIT:
+        def finished(board):
+            for goal in self.goals:
+                if not board[goal[0]][goal[1]] == g.BOXES:
+                    return False
+            return True        
+
+        def dfs(move):
+            if time.time() - startTime  > g.TIME_LIMIT:
+                return False
+
+            if finished(board):
+                return True
+            if move[2] == g.UP:
+                position=(move[0]-1,move[1])
+            if move[2] == g.DOWN:
+                position=(move[0]+1,move[1])
+            if move[2] == g.LEFT:
+                position=(move[0],move[1]-1)
+            if move[2] == g.RIGHT:
+                position=(move[0],move[1]+1)
+
+            moves = self.generateAllMoves(position,board)
+
+            for move in moves:
+                path.append(move)
+                if move[2] == g.UP:
+                    board[move[0]+2,move[1]] = g.BOXES
+                    board[move[0]+1,move[1]] = g.EMPTY
+                if move[2] == g.DOWN:
+                    board[move[0]-2,move[1]] = g.BOXES
+                    board[move[0]-1,move[1]] = g.EMPTY
+                if move[2] == g.LEFT:
+                    board[move[0],move[1]-2] = g.BOXES
+                    board[move[0],move[1]-1] = g.EMPTY
+                if move[2] == g.RIGHT:
+                    board[move[0]+2,move[1]+2] = g.BOXES
+                    board[move[0]+1,move[1]+1] = g.EMPTY
+
+
+                if dfs(move):
+                    return True
+
+                path.pop()
+                if move[2] == g.UP:
+                    board[move[0]+2,move[1]] = g.BOXES
+                    board[move[0]+1,move[1]] = g.EMPTY
+                if move[2] == g.DOWN:
+                    board[move[0]-2,move[1]] = g.BOXES
+                    board[move[0]-1,move[1]] = g.EMPTY
+                if move[2] == g.LEFT:
+                    board[move[0],move[1]-2] = g.BOXES
+                    board[move[0],move[1]-1] = g.EMPTY
+                if move[2] == g.RIGHT:
+                    board[move[0]+2,move[1]+2] = g.BOXES
+                    board[move[0]+1,move[1]+1] = g.EMPTY
+                position = (move[0],move[1])
+
             return False
-        if self.finished():
-            return True
-        #generate frontier
-        
-    def finished(self):
-        return None
 
+        moves = self.generateAllMoves(self.startPosition, board)
+        for move in moves:
+            if dfs(move):
+                return path
+        return None
+    
+    '''
+    returns a list of moves in [y,x,direction]
+    '''
     def generateAllMoves(self, position, board):
         #find connected whitespace
         cur = position
@@ -65,7 +119,7 @@ class AI:
         visitedBoxes = np.zeros((board.shape))
 
         def isValidConnectedSpace(cur):
-            if 0 < cur[0] <= board.shape[0] and 0 < cur[1] <= board.shape[1]:
+            if 0 <= cur[0] < board.shape[0] and 0 <= cur[1] < board.shape[1]:
                 if board[cur[0]][cur[1]] == g.BOXES:
                     if visitedBoxes[cur[0]][cur[1]]:
                         return False
@@ -81,7 +135,7 @@ class AI:
         def visit(curTile):
             possible_neighbors = self.getNeigbors(curTile)
             for i in possible_neighbors:
-                if not visited[i[0]][i[1]] and isValidConnectedSpace(i):
+                if isValidConnectedSpace(i) and not visited[i[0]][i[1]]:
                     connectedSpace.append(i)
                     visited[i[0]][i[1]]=1
                     visit(i)
@@ -103,32 +157,32 @@ class AI:
         pushVisited = np.zeros((board.shape[0],board.shape[1],4))
         for box in boxes:
             neighbors = self.getNeigbors(box)
-            print(f"Box{box} neribors:{neighbors}")
+            # print(f"Box{box} neribors:{neighbors}")
             opposite = [1,0,3,2]
             for i,n in enumerate(neighbors):
-                print(f"neigbor:{n}, visited: {visited[n[0]][n[1]]}, oppositEmpty: {isEmpty(neighbors[opposite[i]])}")
+                # print(f"neigbor:{n}, visited: {visited[n[0]][n[1]]}, oppositEmpty: {isEmpty(neighbors[opposite[i]])}")
                 if pushVisited[n[0]][n[1]][opposite[i]]:
                         continue
                 if visited[n[0]][n[1]] and isEmpty(neighbors[opposite[i]]):
                     n.append(opposite[i])
                     pushable.append(n)
-                    pushVisited[n[0]][n[1]][[opposite[i]]]=1  
-        return pushable
+                    pushVisited[n[0]][n[1]][[opposite[i]]]=1
+        print(pushable)
 
     def getNeigbors(self, tile):
         #up, down, left, right
-        return [[tile[0]+1, tile[1]], [tile[0]-1, tile[1]], [tile[0], tile[1]-1], [tile[0], tile[1]+1]]
+        return [[tile[0]+1, tile[1]], [tile[0]-1, tile[1]], [tile[0], tile[1]-1], [tile[0], tile[1]+1]]        
     
 if __name__ == '__main__':
     file = "sokoban01.txt"
     ai =AI((sokoban_game.Sokoban.readFile(file)))
-    locations =  ai.generateAllMoves(ai.startLocation, ai.board)
-    print(f"start location:{ai.startLocation}")
+    locations =  ai.generateAllMoves(ai.startPosition, ai.board)
+    print(f"start location:{ai.startPosition}")
     output = ai.board.tolist()
     for loc in locations:
         print(loc)
         output[loc[0]][loc[1]] = '.'
-    output[ai.startLocation[0]][ai.startLocation[1]] = 'P'
+    output[ai.startPosition[0]][ai.startPosition[1]] = 'P'
     for i in output:
         for j in i:
             if j != 0:
@@ -136,5 +190,6 @@ if __name__ == '__main__':
             else:
                 print(" ",end="")
         print()
+    print(ai.dfsSolver())
 
 
