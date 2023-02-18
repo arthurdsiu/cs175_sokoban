@@ -81,9 +81,9 @@ class AI:
                     board[move[0],move[1]-1] = g.EMPTY
                     newPos = [move[0],move[1]-1]
                 if move[2] == g.RIGHT:
-                    board[move[0]+2,move[1]+2] = g.BOXES
-                    board[move[0]+1,move[1]+1] = g.EMPTY
-                    newPos = [move[0]+1,move[1]+1]
+                    board[move[0],move[1]+2] = g.BOXES
+                    board[move[0],move[1]+1] = g.EMPTY
+                    newPos = [move[0],move[1]+1]
                 print(f"Box moved {move} \nhere's board state")
                 printBoard(board,None, newPos)
 
@@ -101,9 +101,8 @@ class AI:
                     board[move[0],move[1]-2] = g.EMPTY
                     board[move[0],move[1]-1] = g.BOXES
                 if move[2] == g.RIGHT:
-                    board[move[0]+2,move[1]+2] = g.EMPTY
-                    board[move[0]+1,move[1]+1] = g.BOXES
-                position = (move[0],move[1])
+                    board[move[0],move[1]+2] = g.EMPTY
+                    board[move[0],move[1]+1] = g.BOXES
 
             return False
 
