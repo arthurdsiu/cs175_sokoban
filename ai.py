@@ -4,27 +4,60 @@ import time
 import sokoban_game
 from BitVector import BitVector
 
-'''This class detects deadlocks. Grids that are deadzone will be marked
-with g.DEADLOCK'''
-class Deadlock:
-    deadlockMarked = np.array((0,0))
-    goals = list()
-
-    def __init__(self, nparray, goals):
-        self.deadlockMarked = nparray
-        self.goals = goals
-        for goal in self.goals:
-            #update the goals
-            goal = 0
-
-    def pull():
-        return
-
-    def deadlockList(self):
-        return
 
 '''Solves a sokoban boad through dfs'''
 class AI:
+    '''This class detects deadlocks. Grids that are deadzone will be marked
+    with g.DEADLOCK'''
+    class Deadlock:
+        deadlockByGoals = np.array((0,0))
+        deadlockMarked = np.array((0,0))
+
+        def __init__(self, board, goals):
+            self.deadlockByGoals = np.ones((len(goals), board.shape[0], board.shape[1]), dtype=bool)
+            self.deadlockMarked = np.ones((board.shape[0], board.shape[1]), dtype=bool)
+            
+            def pull(next, cur, goalIndex):
+                testFrom = [next[0] + next[0] - cur[0], next[1] + next[1] - cur[1]]
+
+                if not 0 <= testFrom[0] < board.shape[0] or not 0 <= testFrom[1] < board.shape[1]:
+                    return
+                    
+                if visited[next[0]][next[1]] == True:
+                    return
+                else:
+                    visited[next[0]][next[1]] = True
+
+                if board[next[0]][next[1]] == g.WALL:
+                    return
+
+                if board[testFrom[0]][testFrom[1]] == g.WALL:
+                    print(f"deadlock found: cur{cur} next{next} testFrom {testFrom} goalIndex{goalIndex}")
+                    printDeadlockBoard(board, self.deadlockByGoals[goalIndex], cur)
+                    return
+                
+                self.deadlockByGoals[goalIndex][next[0]][next[1]] = False # mark possible
+                print(f"good tile found: cur{cur} next{next} testFrom {testFrom} goalIndex{goalIndex}")
+                printDeadlockBoard(board, self.deadlockByGoals[goalIndex], cur)
+                neighbors = getNeigbors(board, next)
+                for n in neighbors:
+                    if n != None: 
+                        pull(n, next, goalIndex)
+
+            for i, goal in enumerate(goals):
+                visited = np.zeros((board.shape[0], board.shape[1]), dtype=bool)
+                if i == 0:
+                    pull(goal, goal, i)
+            
+            # generate a deadlock table
+            for grid in self.deadlockByGoals:
+                for i,x in enumerate(grid):
+                    for j,y in enumerate(x):
+                        if y == False:
+                            self.deadlockMarked[i][j] = False
+                            break
+
+    #class variables
     deadlock = None
     board = np.zeros((0,0))
     startPosition = None
@@ -35,7 +68,7 @@ class AI:
         self.board =  game.board
         self.startPosition = game.playerPosition
         self.goals = game.goals
-        deadlock = Deadlock(self.board, self.goals)
+        self.deadlock = self.Deadlock(self.board, self.goals)
 
     def dfsSolver(self):
         startTime = time.time()
@@ -137,7 +170,7 @@ class AI:
             return False
 
         def visit(curTile):
-            possible_neighbors = self.getNeigbors(curTile)
+            possible_neighbors = getNeigbors(board, curTile)
             for i in possible_neighbors:
                 if isValidConnectedSpace(i) and not visited[i[0]][i[1]]:
                     connectedSpace.append(i)
@@ -162,7 +195,7 @@ class AI:
         
         # print(f"normalized:{normalized}")
         for box in boxes:
-            neighbors = self.getNeigbors(box)
+            neighbors = getNeigbors(board, box)
             #print(f"Box{box} neribors:{neighbors}")
             opposite = [1,0,3,2]
             for i,n in enumerate(neighbors):
@@ -176,14 +209,7 @@ class AI:
         #print(pushable)
         return pushable, normalized
 
-    def getNeigbors(self, tile):
-        #up, down, left, right
-        ret= []
-        ret.append([tile[0] - 1, tile[1]] if tile[0] - 1 < self.board.shape[0] else None)
-        ret.append([tile[0] + 1, tile[1]] if tile[0] + 1 >= 0 else None)
-        ret.append([tile[0], tile[1] - 1] if tile[1] - 1 >= 0 else None)
-        ret.append([tile[0], tile[1] + 1] if tile[1] + 1 < self.board.shape[1] else None)
-        return ret
+    
 
     '''
     given some board state with boxes and the player's position,
@@ -206,9 +232,17 @@ class AI:
         hexString = ret.get_bitvector_in_ascii()
         return hexString
 
+def getNeigbors(board, tile):
+        #up, down, left, right
+        ret= []
+        ret.append([tile[0] - 1, tile[1]] if tile[0] - 1 < board.shape[0] else None)
+        ret.append([tile[0] + 1, tile[1]] if tile[0] + 1 >= 0 else None)
+        ret.append([tile[0], tile[1] - 1] if tile[1] - 1 >= 0 else None)
+        ret.append([tile[0], tile[1] + 1] if tile[1] + 1 < board.shape[1] else None)
+        return ret
 def printBoard(board, potentialMoves, playerLocation):
     output = board.tolist()
-    if potentialMoves:
+    if potentialMoves != None:
         for loc in potentialMoves:
             output[loc[0]][loc[1]] = '.'
     output[playerLocation[0]][playerLocation[1]] = 'P'
@@ -220,6 +254,20 @@ def printBoard(board, potentialMoves, playerLocation):
                 print(" ",end="")
         print()
 
+def printDeadlockBoard(board, deadlock, playerLocation):
+    output = board.tolist()
+    for i,x in enumerate(deadlock):
+        for j,y in enumerate(x):
+            if y == True and output[i][j]==0:
+                output[i][j] = 'X'
+    output[playerLocation[0]][playerLocation[1]] = 'P'
+    for i in output:
+        for j in i:
+            if j != 0:
+                print(j,end="")
+            else:
+                print(" ",end="")
+        print()    
 if __name__ == '__main__':
     file = "sokoban01.txt"
     ai =AI((sokoban_game.Sokoban.readFile(file)))
@@ -227,6 +275,7 @@ if __name__ == '__main__':
     print(f"start location:{ai.startPosition}")
     print("Starting board")
     printBoard(ai.board, None ,ai.startPosition)
-    print(ai.dfsSolver())
+    printDeadlockBoard(ai.board,ai.deadlock.deadlockMarked ,ai.startPosition)
+    #print(ai.dfsSolver())
 
 
