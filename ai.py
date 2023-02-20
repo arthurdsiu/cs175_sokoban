@@ -32,13 +32,13 @@ class AI:
                     return
 
                 if board[testFrom[0]][testFrom[1]] == g.WALL:
-                    print(f"deadlock found: cur{cur} next{next} testFrom {testFrom} goalIndex{goalIndex}")
-                    printDeadlockBoard(board, self.deadlockByGoals[goalIndex], cur)
+                    #print(f"deadlock found: cur{cur} next{next} testFrom {testFrom} goalIndex{goalIndex}")
+                    #printDeadlockBoard(board, self.deadlockByGoals[goalIndex], cur)
                     return
                 
                 self.deadlockByGoals[goalIndex][next[0]][next[1]] = False # mark possible
                 print(f"good tile found: cur{cur} next{next} testFrom {testFrom} goalIndex{goalIndex}")
-                printDeadlockBoard(board, self.deadlockByGoals[goalIndex], cur)
+                printDeadlockBoard(board, self.deadlockByGoals[goalIndex], testFrom)
                 neighbors = getNeigbors(board, next)
                 for n in neighbors:
                     if n != None: 
@@ -258,7 +258,7 @@ def printDeadlockBoard(board, deadlock, playerLocation):
     output = board.tolist()
     for i,x in enumerate(deadlock):
         for j,y in enumerate(x):
-            if y == True and output[i][j]==0:
+            if board[i][j]!= g.WALL and deadlock[i][j]== True:
                 output[i][j] = 'X'
     output[playerLocation[0]][playerLocation[1]] = 'P'
     for i in output:
