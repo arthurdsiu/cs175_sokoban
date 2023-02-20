@@ -22,11 +22,27 @@ class AI:
 
                 if not 0 <= testFrom[0] < board.shape[0] or not 0 <= testFrom[1] < board.shape[1]:
                     return
-                    
-                if visited[next[0]][next[1]] == True:
+                '''
+                0  1 -> 01
+                0 -1 -> 00
+                1  0 -> 10
+                -1 0 -> 11
+                '''
+                # if next[0] - cur[0] < 0: or no movement
+                direction = 0
+                if next[0] - cur[0] > 0:
+                    direction = 1
+                if next[1] - cur[1] > 0:
+                    direction = 2
+                if next[1] - cur[1] < 0:
+                    direction = 3
+            
+                print(f"direction{direction}")
+
+                if visited[next[0]][next[1]][direction] == True:
                     return
                 else:
-                    visited[next[0]][next[1]] = True
+                    visited[next[0]][next[1]][direction] = True
 
                 if board[next[0]][next[1]] == g.WALL:
                     return
@@ -38,14 +54,14 @@ class AI:
                 
                 self.deadlockByGoals[goalIndex][next[0]][next[1]] = False # mark possible
                 # print(f"good tile found: cur{cur} next{next} testFrom {testFrom} goalIndex{goalIndex}")
-                printDeadlockBoard(board, self.deadlockByGoals[goalIndex], testFrom)
+                # printDeadlockBoard(board, self.deadlockByGoals[goalIndex], testFrom)
                 neighbors = getNeigbors(board, next)
                 for n in neighbors:
                     if n != None: 
                         pull(n, next, goalIndex)
 
             for i, goal in enumerate(goals):
-                visited = np.zeros((board.shape[0], board.shape[1]), dtype=bool)
+                visited = np.zeros((board.shape[0], board.shape[1], 4), dtype=bool)
                 pull(goal, goal, i)
             
             # generate a simple deadlock table
