@@ -37,7 +37,7 @@ class AI:
                     return
                 
                 self.deadlockByGoals[goalIndex][next[0]][next[1]] = False # mark possible
-                print(f"good tile found: cur{cur} next{next} testFrom {testFrom} goalIndex{goalIndex}")
+                # print(f"good tile found: cur{cur} next{next} testFrom {testFrom} goalIndex{goalIndex}")
                 printDeadlockBoard(board, self.deadlockByGoals[goalIndex], testFrom)
                 neighbors = getNeigbors(board, next)
                 for n in neighbors:
@@ -46,8 +46,7 @@ class AI:
 
             for i, goal in enumerate(goals):
                 visited = np.zeros((board.shape[0], board.shape[1]), dtype=bool)
-                if i == 0:
-                    pull(goal, goal, i)
+                pull(goal, goal, i)
             
             # generate a simple deadlock table
             for grid in self.deadlockByGoals:
@@ -56,8 +55,9 @@ class AI:
                         if self.deadlockMarked[i][j] == True and y == False:
                             self.deadlockMarked[i][j] = False
             # debuggging
-            print("\ngoal 0 deadlock table")
-            printDeadlockBoard(board, self.deadlockByGoals[0], goals[0])
+            for i, table in enumerate(self.deadlockByGoals):
+                print(f"\ngoal {i} deadlock table")
+                printDeadlockBoard(board, table, goals[i])
             print("\ncompiled deadlock table")
             printDeadlockBoard(board, self.deadlockMarked, goals[0])
 
@@ -267,10 +267,10 @@ def printDeadlockBoard(board, deadlock, playerLocation):
     output[playerLocation[0]][playerLocation[1]] = 'P'
     for i in output:
         for j in i:
-            if j != 0:
-                print(j,end="")
+            if j == 1 or j == 'X' or j == 'P':
+                print(j, end="")
             else:
-                print(" ",end="")
+                print(" ", end="")
         print()    
 if __name__ == '__main__':
     file = "sokoban01.txt"
