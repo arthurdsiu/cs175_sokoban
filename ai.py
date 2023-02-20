@@ -12,10 +12,12 @@ class AI:
     class Deadlock:
         deadlockByGoals = np.array((0,0))
         deadlockMarked = np.array((0,0))
+        counterGrid = np.array((0,0))
 
         def __init__(self, board, goals):
             self.deadlockByGoals = np.ones((len(goals), board.shape[0], board.shape[1]), dtype=bool)
             self.deadlockMarked = np.ones((board.shape[0], board.shape[1]), dtype=bool)
+            self.counterGrid = np.zeros((board.shape[0], board.shape[1]), dtype=int)
             
             def pull(next, cur, goalIndex):
                 testFrom = [next[0] + next[0] - cur[0], next[1] + next[1] - cur[1]]
@@ -37,7 +39,7 @@ class AI:
                 if next[1] - cur[1] < 0:
                     direction = 3
             
-                print(f"direction{direction}")
+                # print(f"direction{direction}")
 
                 if visited[next[0]][next[1]][direction] == True:
                     return
@@ -52,7 +54,8 @@ class AI:
                     #printDeadlockBoard(board, self.deadlockByGoals[goalIndex], cur)
                     return
                 
-                self.deadlockByGoals[goalIndex][next[0]][next[1]] = False # mark possible
+                self.deadlockByGoals[goalIndex][next[0]][next[1]] = False # mark that deadlock doesn't exist
+
                 # print(f"good tile found: cur{cur} next{next} testFrom {testFrom} goalIndex{goalIndex}")
                 # printDeadlockBoard(board, self.deadlockByGoals[goalIndex], testFrom)
                 neighbors = getNeigbors(board, next)
@@ -70,12 +73,31 @@ class AI:
                     for j,y in enumerate(x):
                         if self.deadlockMarked[i][j] == True and y == False:
                             self.deadlockMarked[i][j] = False
+            # generate a count table
+            for grid in self.deadlockByGoals:
+                for i,x in enumerate(grid):
+                    for j,y in enumerate(x):
+                        if y == False:
+                            self.counterGrid[i][j]+=1
             # debuggging
-            for i, table in enumerate(self.deadlockByGoals):
-                print(f"\ngoal {i} deadlock table")
-                printDeadlockBoard(board, table, goals[i])
-            print("\ncompiled deadlock table")
-            printDeadlockBoard(board, self.deadlockMarked, goals[0])
+            # for i, table in enumerate(self.deadlockByGoals):
+            #     print(f"\ngoal {i} deadlock table")
+            #     printDeadlockBoard(board, table, goals[i])
+            # print("\ncompiled deadlock table")
+            # printDeadlockBoard(board, self.deadlockMarked, goals[0])
+            # print("\ncounter table")
+            # output = self.counterGrid.tolist()
+            # for i in output:
+            #     print(i)
+
+        def checkIfCountDeadlock(self, boxCounter, oldBoxPos, newBoxPos):
+            oldLimit = self.counterGrid[oldBoxPos[0]][oldBoxPos[1]]
+            newLimit = self.counterGrid[newBoxPos[0]][newBoxPos[1]]
+            if oldLimit == newLimit:
+                return False
+            if boxCounter[newLimit] +1 > newLimit:
+                return True
+            return False
 
     #class variables
     deadlock = None
@@ -96,6 +118,13 @@ class AI:
         board = self.board
         visitedStates = dict()
 
+        # count deadlock
+        boxCount = [0] * (len(self.goals)+1 )# 1-6 indexing 
+        for i, row in enumerate(board):
+            for j, elem in enumerate(row):
+                if elem == g.BOXES:
+                    boxCount[self.deadlock.counterGrid[i][j]]+=1
+
         def finished(board):
             for goal in self.goals:
                 if not board[goal[0]][goal[1]] == g.BOXES:
@@ -105,9 +134,10 @@ class AI:
         def dfs(newPosition):
             if time.time() - startTime  > g.TIME_LIMIT:
                 return False
-
+        
             if finished(board):
                 return True
+            
             moves, normalized = self.generateAllMoves(newPosition, board)
             print(f"Possible moves {moves}")
             print("Board state, all possible moves marked with a '.' ")
@@ -121,22 +151,29 @@ class AI:
 
             for move in moves:
                 path.append(move)
-                if move[2] == g.UP:
-                    board[move[0]-2,move[1]] = g.BOXES
-                    board[move[0]-1,move[1]] = g.EMPTY
-                    newPos = [move[0]-1,move[1]]
-                if move[2] == g.DOWN:
-                    board[move[0]+2,move[1]] = g.BOXES
-                    board[move[0]+1,move[1]] = g.EMPTY
-                    newPos =[move[0]+1,move[1]] 
-                if move[2] == g.LEFT:
-                    board[move[0],move[1]-2] = g.BOXES
-                    board[move[0],move[1]-1] = g.EMPTY
-                    newPos = [move[0],move[1]-1]
-                if move[2] == g.RIGHT:
-                    board[move[0],move[1]+2] = g.BOXES
-                    board[move[0],move[1]+1] = g.EMPTY
-                    newPos = [move[0],move[1]+1]
+
+                def moveBox(ob, nb):
+                    board[nb[0],nb[1]] = g.BOXES
+                    newLimit =  self.deadlock.counterGrid[nb[0],nb[1]]
+                    oldLimit =  self.deadlock.counterGrid[ob[0],ob[1]]
+                    boxCount[newLimit]+=1
+                    boxCount[oldLimit]-=1
+                    board[ob[0],ob[1]] = g.EMPTY
+                    return ob
+
+                newPos = None
+                if move[2] == g.UP and not self.deadlock.checkIfCountDeadlock(boxCount, [move[0]-2,move[1]], [move[0]-2,move[1]]):
+                    newPos = moveBox([move[0]-1,move[1]], [move[0]-2,move[1]])
+                if move[2] == g.DOWN and not self.deadlock.checkIfCountDeadlock(boxCount, [move[0]+2,move[1]], [move[0]+2,move[1]]):
+                    newPos = moveBox([move[0]+1,move[1]], [move[0]+2,move[1]])
+                if move[2] == g.LEFT and not self.deadlock.checkIfCountDeadlock(boxCount, [move[0],move[1]-2], [move[0],move[1]-2]):
+                    newPos = moveBox([move[0],move[1]-1], [move[0]+2,move[1]-2])
+                if move[2] == g.RIGHT and not self.deadlock.checkIfCountDeadlock(boxCount, [move[0],move[1]+2], [move[0],move[1]+2]):
+                    newPos = moveBox([move[0],move[1]+1], [move[0]+2,move[1]+2])
+                
+                if newPos == None: # go next move if deadlock state encountered
+                    continue
+                
                 print(f"Box moved {move} \nhere's board state")
                 printBoard(board,None, newPos)
 
@@ -265,7 +302,8 @@ def printBoard(board, potentialMoves, playerLocation):
     if potentialMoves != None:
         for loc in potentialMoves:
             output[loc[0]][loc[1]] = '.'
-    output[playerLocation[0]][playerLocation[1]] = 'P'
+    if playerLocation != None:
+        output[playerLocation[0]][playerLocation[1]] = 'P'
     for i in output:
         for j in i:
             if j != 0:
@@ -296,6 +334,6 @@ if __name__ == '__main__':
     print("Starting board")
     printBoard(ai.board, None ,ai.startPosition)
     printDeadlockBoard(ai.board,ai.deadlock.deadlockMarked ,ai.startPosition)
-    #print(ai.dfsSolver())
+    print(ai.dfsSolver())
 
 
