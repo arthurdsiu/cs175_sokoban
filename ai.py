@@ -162,13 +162,13 @@ class AI:
                     return ob
 
                 newPos = None
-                if move[2] == g.UP and not self.deadlock.checkIfCountDeadlock(boxCount, [move[0]-2,move[1]], [move[0]-2,move[1]]):
+                if move[2] == g.UP and not self.deadlock.checkIfCountDeadlock(boxCount, [move[0]-1,move[1]], [move[0]-2,move[1]]):
                     newPos = moveBox([move[0]-1,move[1]], [move[0]-2,move[1]])
-                if move[2] == g.DOWN and not self.deadlock.checkIfCountDeadlock(boxCount, [move[0]+2,move[1]], [move[0]+2,move[1]]):
+                if move[2] == g.DOWN and not self.deadlock.checkIfCountDeadlock(boxCount, [move[0]+1,move[1]], [move[0]+2,move[1]]):
                     newPos = moveBox([move[0]+1,move[1]], [move[0]+2,move[1]])
-                if move[2] == g.LEFT and not self.deadlock.checkIfCountDeadlock(boxCount, [move[0],move[1]-2], [move[0],move[1]-2]):
+                if move[2] == g.LEFT and not self.deadlock.checkIfCountDeadlock(boxCount, [move[0],move[1]-1], [move[0],move[1]-2]):
                     newPos = moveBox([move[0],move[1]-1], [move[0]+2,move[1]-2])
-                if move[2] == g.RIGHT and not self.deadlock.checkIfCountDeadlock(boxCount, [move[0],move[1]+2], [move[0],move[1]+2]):
+                if move[2] == g.RIGHT and not self.deadlock.checkIfCountDeadlock(boxCount, [move[0],move[1]+1], [move[0],move[1]+2]):
                     newPos = moveBox([move[0],move[1]+1], [move[0]+2,move[1]+2])
                 
                 if newPos == None: # go next move if deadlock state encountered
