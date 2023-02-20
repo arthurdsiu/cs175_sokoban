@@ -8,19 +8,52 @@ class Sokoban:
     completed = False
     moveHistory= ''
     
-    def __init__(self, board):
-        self.board = board
-        #find the player position and replace with an empty tile
-        #find storage and replace with empty tiles
-        #boxes remain the same
-        for y in range(board.shape[0]):
-            for x in range(board.shape[1]):
-                if(board[y][x] == g.PLAYER_LOCATION):
-                    self.playerPosition = (y,x)
-                    board[y][x] = g.EMPTY
-                if(board[y][x] == g.STORAGE):
-                    board[y][x] = g.EMPTY
-                    self.goals.append((y,x))
+    def __init__(self, inputLocation: str):
+        try:
+            with open(inputLocation, "r") as f:
+                inputLines = [i.strip() for i in f.readlines()]
+        except FileNotFoundError:
+            print("Error Accessing File")
+            return
+        input_split = list()
+        for line in inputLines:
+            row = list()
+            for num in line.split():
+                row.append(int(num))
+            input_split.append(row)  
+
+        WALL = g.WALL
+        BOXES =  g.BOXES
+        STORAGE = g.STORAGE
+        PLAYER_LOCATION = g.PLAYER_LOCATION
+        try:
+            self.board = np.zeros( (input_split[0][0], input_split[0][1]), dtype=int )
+            # print("\nwall")
+            for i in range(1, 2*(input_split[WALL][0]) + 1, 2):
+                y = input_split[WALL][i] - 1
+                x = input_split[WALL][i+1] - 1
+                # print(f"x{x},y{y}")
+                self.board[y][x] = WALL
+
+            # print("\nboxes")
+            for i in range(1, 2*(input_split[BOXES][0]) + 1, 2):
+                y = input_split[BOXES][i] - 1
+                x = input_split[BOXES][i+1] - 1
+                # print(f"x{x},y{y}")
+                self.board[y][x] = BOXES
+
+            # print("\nstorage")
+            for i in range(1, 2*(input_split[STORAGE][0]) + 1, 2):
+                y = input_split[STORAGE][i] - 1 
+                x = input_split[STORAGE][i+1] - 1
+                self.goals.append((y,x))
+
+            y = input_split[PLAYER_LOCATION][0] - 1
+            x = input_split[PLAYER_LOCATION][1] - 1
+            self.playerPosition = (y,x)
+
+        except Exception as E:
+            print(f"Error converting to np array\n{E}")
 
     def emptyPosition(self, position):
         return (self.board[position[0]][position[1]] == g.EMPTY)
@@ -103,54 +136,3 @@ class Sokoban:
                 self.movePlayer(g.RIGHT)
         print("\n\nAuto move finished")
             
-
-    @staticmethod
-    def readFile(inputLocation: str):
-        try:
-            with open(inputLocation, "r") as f:
-                inputLines = [i.strip() for i in f.readlines()]
-        except FileNotFoundError:
-            print("Error Accessing File")
-            return
-        input_split = list()
-        for line in inputLines:
-            row = list()
-            for num in line.split():
-                row.append(int(num))
-            input_split.append(row)  
-
-        WALL = g.WALL
-        BOXES =  g.BOXES
-        STORAGE = g.STORAGE
-        PLAYER_LOCATION = g.PLAYER_LOCATION
-        try:
-            sokoban_board = np.zeros( (input_split[0][0], input_split[0][1]), dtype=int )
-            # print("\nwall")
-            for i in range(1, 2*(input_split[WALL][0]) + 1, 2):
-                y = input_split[WALL][i] - 1
-                x = input_split[WALL][i+1] - 1
-                # print(f"x{x},y{y}")
-                sokoban_board[y][x] = WALL
-
-            # print("\nboxes")
-            for i in range(1, 2*(input_split[BOXES][0]) + 1, 2):
-                y = input_split[BOXES][i] - 1
-                x = input_split[BOXES][i+1] - 1
-                # print(f"x{x},y{y}")
-                sokoban_board[y][x] = BOXES
-
-            # print("\nstorage")
-            for i in range(1, 2*(input_split[STORAGE][0]) + 1, 2):
-                y = input_split[STORAGE][i] - 1 
-                x = input_split[STORAGE][i+1] - 1
-                # print(f"x{x},y{y}")
-                sokoban_board[y][x] = STORAGE 
-
-            y = input_split[PLAYER_LOCATION][0] - 1
-            x = input_split[PLAYER_LOCATION][1] - 1
-            sokoban_board[y][x] = PLAYER_LOCATION
-
-        except Exception as E:
-            print(f"Error converting to np array\n{E}")
-
-        return sokoban_board

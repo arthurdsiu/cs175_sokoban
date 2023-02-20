@@ -1,7 +1,7 @@
 import numpy as np
 import globals as g
 import time
-import sokoban_game
+from sokoban_game import Sokoban
 from BitVector import BitVector
 
 
@@ -105,11 +105,10 @@ class AI:
     startPosition = None
     goals = None
     
-    def __init__(self, nparray):
-        game = sokoban_game.Sokoban(nparray)
-        self.board =  game.board
-        self.startPosition = game.playerPosition
-        self.goals = game.goals
+    def __init__(self, sokoban :Sokoban):
+        self.board =  sokoban.board
+        self.startPosition = sokoban.playerPosition
+        self.goals = sokoban.goals
         self.deadlock = self.Deadlock(self.board, self.goals)
 
     def dfsSolver(self):
@@ -132,16 +131,16 @@ class AI:
             return True        
 
         def dfs(newPosition):
-            if time.time() - startTime  > g.TIME_LIMIT:
-                return False
+            # if time.time() - startTime  > g.TIME_LIMIT:
+            #     return False
         
             if finished(board):
                 return True
             
             moves, normalized = self.generateAllMoves(newPosition, board)
-            print(f"Possible moves {moves}")
-            print("Board state, all possible moves marked with a '.' ")
-            printBoard(board,moves, newPosition)
+            # print(f"Possible moves {moves}")
+            # print("Board state, all possible moves marked with a '.' ")
+            # printBoard(board,moves, newPosition)
             
             # I"m not sure about this
             key = self.getState(board, normalized)
@@ -174,8 +173,8 @@ class AI:
                 if newPos == None: # go next move if deadlock state encountered
                     continue
                 
-                print(f"Box moved {move} \nhere's board state")
-                printBoard(board,None, newPos)
+                # print(f"Box moved {move} \nhere's board state")
+                # printBoard(board,None, newPos)
 
                 if dfs(newPos):
                     return True
@@ -196,7 +195,10 @@ class AI:
 
             return False
 
-        return dfs(self.startPosition)
+        if dfs(self.startPosition):
+            return path
+
+
     '''
     returns a list of moves in [y,x,direction]
     (y,x) is front of a box
@@ -327,13 +329,18 @@ def printDeadlockBoard(board, deadlock, playerLocation):
                 print(" ", end="")
         print()    
 if __name__ == '__main__':
-    file = "sokoban01.txt"
-    ai =AI((sokoban_game.Sokoban.readFile(file)))
+    file = "sokoban02.txt"
+    ai =AI(Sokoban(file))
     locations, position =  ai.generateAllMoves(ai.startPosition, ai.board)
     print(f"start location:{ai.startPosition}")
     print("Starting board")
     printBoard(ai.board, None ,ai.startPosition)
     printDeadlockBoard(ai.board,ai.deadlock.deadlockMarked ,ai.startPosition)
-    print(ai.dfsSolver())
-
+    path = ai.dfsSolver()
+    try:
+        with open("moveHistory.txt", "w") as f:
+            for move in path:
+                f.write(f"{move}\n")
+    except:
+        print("Error writing file")
 

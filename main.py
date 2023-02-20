@@ -8,9 +8,9 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         str  = input("No file location provided in cmdline\nPlease enter file location: ")
         print(str)
-        game = Sokoban(Sokoban.readFile(str))
+        game = Sokoban(str)
     else:
-        game = Sokoban(Sokoban.readFile(sys.argv[1]))
+        game = Sokoban(sys.argv[1])
     
     cont = True
     while(cont):
