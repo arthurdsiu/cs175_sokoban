@@ -49,13 +49,17 @@ class AI:
                 if i == 0:
                     pull(goal, goal, i)
             
-            # generate a deadlock table
+            # generate a simple deadlock table
             for grid in self.deadlockByGoals:
                 for i,x in enumerate(grid):
                     for j,y in enumerate(x):
-                        if y == False:
+                        if self.deadlockMarked[i][j] == True and y == False:
                             self.deadlockMarked[i][j] = False
-                            break
+            # debuggging
+            print("\ngoal 0 deadlock table")
+            printDeadlockBoard(board, self.deadlockByGoals[0], goals[0])
+            print("\ncompiled deadlock table")
+            printDeadlockBoard(board, self.deadlockMarked, goals[0])
 
     #class variables
     deadlock = None
