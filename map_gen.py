@@ -40,7 +40,7 @@ if __name__ == '__main__':
                 writeLists(wall)
                 writeLists(box)
                 writeLists(storage)
-                o.write(f"{playerLocation[0]} {playerLocation[1]}")
+                o.write(f"{playerLocation[0]+1} {playerLocation[1]+1}")
                 
         except Exception as e:
             print(f"Failed to write out map {mapNum}: {e}")
