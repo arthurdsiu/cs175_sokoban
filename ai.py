@@ -1,6 +1,7 @@
 import numpy as np
 import globals as g
 import time
+import sys
 from sokoban_game import Sokoban
 from BitVector import BitVector
 
@@ -268,8 +269,6 @@ class AI:
         #print(pushable)
         return pushable, normalized
 
-    
-
     '''
     given some board state with boxes and the player's position,
     return a unique bitVector representation that will represent the state
@@ -291,6 +290,13 @@ class AI:
         hexString = ret.get_bitvector_in_ascii()
         return hexString
 
+    '''
+    uses BFS to find a path from origin to move
+    '''
+    def getMoves(self):
+        ret = ""
+        return ret
+
 def getNeigbors(board, tile):
         #up, down, left, right
         ret= []
@@ -299,6 +305,8 @@ def getNeigbors(board, tile):
         ret.append([tile[0], tile[1] - 1] if tile[1] - 1 >= 0 else None)
         ret.append([tile[0], tile[1] + 1] if tile[1] + 1 < board.shape[1] else None)
         return ret
+
+
 def printBoard(board, potentialMoves, playerLocation):
     output = board.tolist()
     if potentialMoves != None:
@@ -327,10 +335,15 @@ def printDeadlockBoard(board, deadlock, playerLocation):
                 print(j, end="")
             else:
                 print(" ", end="")
-        print()    
+        print()
+    
 if __name__ == '__main__':
-    file = "sokoban02.txt"
-    ai =AI(Sokoban(file))
+    if len(sys.argv) == 1:
+        fileLoc  = input("Please enter file location: ")
+    else:
+        fileLoc = sys.argv[1]
+    
+    ai =AI(Sokoban(fileLoc))
     locations, position =  ai.generateAllMoves(ai.startPosition, ai.board)
     print(f"start location:{ai.startPosition}")
     print("Starting board")
@@ -341,6 +354,9 @@ if __name__ == '__main__':
         with open("moveHistory.txt", "w") as f:
             for move in path:
                 f.write(f"{move}\n")
+        with open("autoMove.txt", "w") as f:
+                f.write(f"{ai.getMoves()}\n")
+        
     except:
         print("Error writing file")
 
