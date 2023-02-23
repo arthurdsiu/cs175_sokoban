@@ -2,6 +2,7 @@ import numpy as np
 import globals as g
 import time
 import sys
+import copy
 from collections import deque
 from sokoban_game import Sokoban
 from BitVector import BitVector
@@ -142,11 +143,13 @@ class AI:
     #class variables
     deadlock = None
     board = np.zeros((0,0))
+    originalBoard = np.zeros((0,0))
     startPosition = None
     goals = None
     
     def __init__(self, sokoban :Sokoban):
-        self.board =  sokoban.board
+        self.board =  copy.deepcopy(sokoban.board)
+        self.originalBoard =  copy.deepcopy(sokoban.board)
         self.startPosition = sokoban.playerPosition
         self.goals = sokoban.goals
         self.deadlock = self.Deadlock(self.board, self.goals)
@@ -339,23 +342,32 @@ class AI:
     uses BFS to find a path from origin to move
     '''
     def getMoves(self, moveList):
+        tempBoard =  copy.deepcopy(self.originalBoard)
         ret = str()
         prev = self.startPosition
         for move in moveList:
-            ret += self.bfsPath(prev, move)
+            path = self.bfsPath(prev, move, tempBoard)
+            if path == None:
+                continue
             ret += numToLetMove(move[2])
             if move[2] == g.UP:
                 prev = [move[0]-1,move[1]]
+                boxLoc = [move[0]-2,move[1]]
             if move[2] == g.DOWN:
                 prev = [move[0]+1,move[1]]
+                boxLoc = [move[0]+2,move[1]]
             if move[2] == g.LEFT:
                 prev = [move[0],move[1]-1]
+                boxLoc = [move[0],move[1]-1]
             if move[2] == g.RIGHT:
                 prev = [move[0],move[1]+1]
+                boxLoc = [move[0],move[1]+1]
+            tempBoard[prev[0]][prev[1]]= g.EMPTY
+            tempBoard[boxLoc[0]][boxLoc[1]]=g.BOXES
         return ret
 
-    def bfsPath(self, origin, dest):
-        visited = [[None] * self.board.shape[1]] * self.board.shape[0]
+    def bfsPath(self, origin, dest, board):
+        visited = [[None] * board.shape[1]] * board.shape[0]
         q = deque()
         q.append(origin)
         visited[origin[0]][origin[1]] = True
@@ -375,10 +387,10 @@ class AI:
                     return findPath(visited[cur[0]][cur[1]])
                 return findPath(cur)
 
-            neighbors = getNeigbors(self.board, cur)
+            neighbors = getNeigbors(board, cur)
             for n in neighbors:
-                if self.board[n[0]][n[1]] == g.WALL or visited[n[0]][n[1]]: #ignore boxes
-                    print(f"n {n} board: {self.board[n[0]][n[1]]} and visited: { visited[n[0]][n[1]]}")
+                if board[n[0]][n[1]] != g.EMPTY or visited[n[0]][n[1]]:
+                    print(f"n {n} board: {board[n[0]][n[1]]} and visited: { visited[n[0]][n[1]]}")
                     continue
                 else:
                     visited[n[0]][n[1]] = [cur[0],cur[1]]
@@ -438,7 +450,7 @@ def printDeadlockBoard(board, deadlock, playerLocation):
     
 if __name__ == '__main__':
     fileLoc = None
-    fileLoc= 'maps/3b.txt'
+    #fileLoc= 'sokoban00.txt'
     if fileLoc == None:
         if len(sys.argv) == 1:
             fileLoc  = input("Please enter file location: ")
