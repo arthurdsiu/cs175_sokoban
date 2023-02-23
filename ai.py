@@ -2,6 +2,7 @@ import numpy as np
 import globals as g
 import time
 import sys
+from collections import deque
 from sokoban_game import Sokoban
 from BitVector import BitVector
 
@@ -156,7 +157,7 @@ class AI:
         board = self.board
         visitedStates = dict()
 
-        # count deadlock
+        # count deadlock box Count
         boxCount = [0] * (len(self.deadlock.hashToLimit))
         for i, row in enumerate(board):
             for j, elem in enumerate(row):
@@ -189,8 +190,6 @@ class AI:
             print(f"Possible moves {moves}")
             print("Board state, all possible moves marked with a '.' ")
             printBoard(board,moves, None)
-            
-            
 
             for move in moves:
                 path.append(move)
@@ -301,13 +300,15 @@ class AI:
         for box in boxes:
             neighbors = getNeigbors(board, box)
             #print(f"Box{box} neribors:{neighbors}")
+            #neighbors: up, down, left, right
             opposite = [1,0,3,2]
             for i,n in enumerate(neighbors):
                 # print(f"neigbor:{n}, visited: {visited[n[0]][n[1]]}, oppositEmpty: {isEmpty(neighbors[opposite[i]])}")
                 if n == None:
                     continue
                 if visited[n[0]][n[1]] and neighbors[opposite[i]]!= None and isEmpty(neighbors[opposite[i]]):
-                    n.append(opposite[i]) # if n is valid, and you're UP, that means you need to push DOWN
+                    n[2] = opposite[i] # if n is valid, that there is a box's empty space adjacent,
+                    #you're UP, that means you need to push DOWN
                     pushable.append(n)
                     
         #print(pushable)
@@ -337,19 +338,73 @@ class AI:
     '''
     uses BFS to find a path from origin to move
     '''
-    def getMoves(self):
-        ret = ""
+    def getMoves(self, moveList):
+        ret = str()
+        prev = self.startPosition
+        for move in moveList:
+            ret += self.bfsPath(prev, move)
+            ret += numToLetMove(move[2])
+            if move[2] == g.UP:
+                prev = [move[0]-1,move[1]]
+            if move[2] == g.DOWN:
+                prev = [move[0]+1,move[1]]
+            if move[2] == g.LEFT:
+                prev = [move[0],move[1]-1]
+            if move[2] == g.RIGHT:
+                prev = [move[0],move[1]+1]
         return ret
 
+    def bfsPath(self, origin, dest):
+        visited = [[None] * self.board.shape[1]] * self.board.shape[0]
+        q = deque()
+        q.append(origin)
+        visited[origin[0]][origin[1]] = True
+        
+        while(len(q)):
+            cur = q.popleft()
+            if cur[0] == dest[0] and cur[1] == dest[1]:
+                path = list() # trace back path
+                def findPath(node):
+                    if node == origin:
+                        path.reverse()
+                        ret = str()
+                        for i in path:
+                            ret += numToLetMove(i)
+                        return ret
+                    path.append(visited[cur[0]][cur[1]][2])
+                    return findPath(visited[cur[0]][cur[1]])
+                return findPath(cur)
+
+            neighbors = getNeigbors(self.board, cur)
+            for n in neighbors:
+                if self.board[n[0]][n[1]] == g.WALL or visited[n[0]][n[1]]: #ignore boxes
+                    print(f"n {n} board: {self.board[n[0]][n[1]]} and visited: { visited[n[0]][n[1]]}")
+                    continue
+                else:
+                    visited[n[0]][n[1]] = [cur[0],cur[1]]
+                    q.append(n)
+                
+            if visited[cur[0]][cur[1]] == None:
+                continue
+            
 def getNeigbors(board, tile):
         #up, down, left, right
         ret= []
-        ret.append([tile[0] - 1, tile[1]] if tile[0] - 1 >= 0  else None)
-        ret.append([tile[0] + 1, tile[1]] if tile[0] + 1 < board.shape[0] else None)
-        ret.append([tile[0], tile[1] - 1] if tile[1] - 1 >= 0 else None)
-        ret.append([tile[0], tile[1] + 1] if tile[1] + 1 < board.shape[1] else None)
+        ret.append([tile[0] - 1, tile[1], g.UP] if tile[0] - 1 >= 0  else None)
+        ret.append([tile[0] + 1, tile[1], g.DOWN] if tile[0] + 1 < board.shape[0] else None)
+        ret.append([tile[0], tile[1] - 1, g.LEFT] if tile[1] - 1 >= 0 else None)
+        ret.append([tile[0], tile[1] + 1, g.RIGHT] if tile[1] + 1 < board.shape[1] else None)
         return ret
 
+def numToLetMove(i):
+    if i == g.UP:
+       return 'U'
+    if i == g.DOWN:
+        return'D'
+    if i == g.LEFT:
+        return'L'
+    if i == g.RIGHT:
+        return 'R'
 
 def printBoard(board, potentialMoves, playerLocation):
     output = board.tolist()
@@ -404,8 +459,10 @@ if __name__ == '__main__':
     except:
         print("Error writing moveHistory file")
 
+    string = ai.getMoves(path)
     try:
         with open("autoMove.txt", "w") as f:
-            f.write(f"{ai.getMoves()}\n")
+            
+            f.write(f"{string}\n")
     except:
         print("Error writing autoMove file")
