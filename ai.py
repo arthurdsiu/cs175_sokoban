@@ -13,12 +13,13 @@ class AI:
     class Deadlock:
         deadlockByGoals = np.array((0,0))
         deadlockMarked = np.array((0,0))
-        counterGrid = np.array((0,0))
+        counterHash = np.array((0,0))
+        hashToLimit = list()
 
         def __init__(self, board, goals):
             self.deadlockByGoals = np.ones((len(goals), board.shape[0], board.shape[1]), dtype=bool)
             self.deadlockMarked = np.ones((board.shape[0], board.shape[1]), dtype=bool)
-            self.counterGrid = np.zeros((board.shape[0], board.shape[1]), dtype=int)
+            self.counterHash = np.zeros((board.shape[0], board.shape[1]), dtype=int)
             
             def pull(next, cur, goalIndex):
                 testFrom = [next[0] + next[0] - cur[0], next[1] + next[1] - cur[1]]
@@ -79,24 +80,61 @@ class AI:
                 for i,x in enumerate(grid):
                     for j,y in enumerate(x):
                         if y == False:
-                            self.counterGrid[i][j]+=1
+                            self.counterHash[i][j]+=1
+            # convert count table to hash by region
+            # a region is a cell with a limit and all reachable neigbors with the same limit
+            # store each region's name and limit in separate list
+
+            visited = np.zeros(self.counterHash.shape, dtype=bool)
+
+            def labelCountToHash(cur, curCount, hash):
+                if visited[cur[0]][cur[1]]:
+                    return # visited already
+                visited[cur[0]][cur[1]] = True
+                if curCount == -1:
+                    curCount = self.counterHash[cur[0]][cur[1]]
+                if self.counterHash[cur[0]][cur[1]] != curCount:
+                    return # wrong area
+
+                self.counterHash[cur[0]][cur[1]] = hash # counter -> hash
+
+                for n in getNeigbors(board, cur):
+                    if n:
+                        labelCountToHash(n, curCount, hash) # visit all neigbors
+                return curCount
+
+
+            for i in range(self.counterHash.shape[0]):
+                for j in range(self.counterHash.shape[1]):
+                    if self.counterHash[i][j] == 0: 
+                        visited[i][j] = True  # don't create new cells for 0
+            hash = 1
+            self.hashToLimit.append(0)
+            for i in range(self.counterHash.shape[0]):
+                for j in range(self.counterHash.shape[1]):
+                    if visited[i][j]:
+                        continue
+                    curCount = labelCountToHash([i,j], -1, hash)
+                    self.hashToLimit.append(curCount)
+                    hash+=1 # or hash = len(hashToLimit)
+
             # debuggging
-            # for i, table in enumerate(self.deadlockByGoals):
-            #     print(f"\ngoal {i} deadlock table")
-            #     printDeadlockBoard(board, table, goals[i])
-            # print("\ncompiled deadlock table")
-            # printDeadlockBoard(board, self.deadlockMarked, goals[0])
-            # print("\ncounter table")
-            # output = self.counterGrid.tolist()
-            # for i in output:
-            #     print(i)
+            for i, table in enumerate(self.deadlockByGoals):
+                print(f"\ngoal {i} deadlock table")
+                printDeadlockBoard(board, table, goals[i])
+            print("\ncompiled deadlock table")
+            printDeadlockBoard(board, self.deadlockMarked, goals[0])
+            print("\ncounter table")
+            output = self.counterHash.tolist()
+            for i in output:
+                print(i)
 
         def checkIfCountDeadlock(self, boxCounter, oldBoxPos, newBoxPos):
-            oldLimit = self.counterGrid[oldBoxPos[0]][oldBoxPos[1]]
-            newLimit = self.counterGrid[newBoxPos[0]][newBoxPos[1]]
-            if oldLimit == newLimit:
-                return False
-            if boxCounter[newLimit] +1 > newLimit:
+            oldHash = self.counterHash[oldBoxPos[0]][oldBoxPos[1]]
+            newHash = self.counterHash[newBoxPos[0]][newBoxPos[1]]
+            if oldHash == newHash:
+                return False # box is not moving to a new area
+            if boxCounter[newHash] +1 > newHash:
                 return True
             return False
 
@@ -119,11 +157,11 @@ class AI:
         visitedStates = dict()
 
         # count deadlock
-        boxCount = [0] * (len(self.goals)+1 )# 1-6 indexing 
+        boxCount = [0] * (len(self.deadlock.hashToLimit))
         for i, row in enumerate(board):
             for j, elem in enumerate(row):
                 if elem == g.BOXES:
-                    boxCount[self.deadlock.counterGrid[i][j]]+=1
+                    boxCount[self.deadlock.counterHash[i][j]]+=1
 
         def finished(board):
             for goal in self.goals:
@@ -136,26 +174,31 @@ class AI:
             #     return False
         
             if finished(board):
+                print("Finished solving")
                 return True
             
             moves, normalized = self.generateAllMoves(newPosition, board)
-            # print(f"Possible moves {moves}")
-            # print("Board state, all possible moves marked with a '.' ")
-            # printBoard(board,moves, newPosition)
             
             # I"m not sure about this
             key = self.getState(board, normalized)
-            if visitedStates.setdefault(key):
+            if visitedStates.setdefault(key, False):
+                print(f"this is a visited state with move {newPosition}")
                 return False
             visitedStates[key] = True
+
+            print(f"Possible moves {moves}")
+            print("Board state, all possible moves marked with a '.' ")
+            printBoard(board,moves, None)
+            
+            
 
             for move in moves:
                 path.append(move)
 
                 def moveBox(ob, nb):
                     board[nb[0],nb[1]] = g.BOXES
-                    newLimit =  self.deadlock.counterGrid[nb[0],nb[1]]
-                    oldLimit =  self.deadlock.counterGrid[ob[0],ob[1]]
+                    newLimit =  self.deadlock.counterHash[nb[0],nb[1]]
+                    oldLimit =  self.deadlock.counterHash[ob[0],ob[1]]
                     boxCount[newLimit]+=1
                     boxCount[oldLimit]-=1
                     board[ob[0],ob[1]] = g.EMPTY
@@ -172,15 +215,16 @@ class AI:
                     newPos = moveBox([move[0],move[1]+1], [move[0],move[1]+2])
                 
                 if newPos == None: # go next move if deadlock state encountered
+                    print("Deadlock detected")
                     continue
                 
-                # print(f"Box moved {move} \nhere's board state")
-                # printBoard(board,None, newPos)
+                print(f"Box moved {move} \nhere's board state")
+                printBoard(board,None, newPos)
 
                 if dfs(newPos):
                     return True
-
                 path.pop()
+
                 if move[2] == g.UP:
                     board[move[0]-2,move[1]] = g.EMPTY
                     board[move[0]-1,move[1]] = g.BOXES
@@ -300,8 +344,8 @@ class AI:
 def getNeigbors(board, tile):
         #up, down, left, right
         ret= []
-        ret.append([tile[0] - 1, tile[1]] if tile[0] - 1 < board.shape[0] else None)
-        ret.append([tile[0] + 1, tile[1]] if tile[0] + 1 >= 0 else None)
+        ret.append([tile[0] - 1, tile[1]] if tile[0] - 1 >= 0  else None)
+        ret.append([tile[0] + 1, tile[1]] if tile[0] + 1 < board.shape[0] else None)
         ret.append([tile[0], tile[1] - 1] if tile[1] - 1 >= 0 else None)
         ret.append([tile[0], tile[1] + 1] if tile[1] + 1 < board.shape[1] else None)
         return ret
@@ -338,10 +382,13 @@ def printDeadlockBoard(board, deadlock, playerLocation):
         print()
     
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        fileLoc  = input("Please enter file location: ")
-    else:
-        fileLoc = sys.argv[1]
+    fileLoc = None
+    fileLoc= 'maps/3b.txt'
+    if fileLoc == None:
+        if len(sys.argv) == 1:
+            fileLoc  = input("Please enter file location: ")
+        else:
+            fileLoc = sys.argv[1]
     
     ai =AI(Sokoban(fileLoc))
     locations, position =  ai.generateAllMoves(ai.startPosition, ai.board)
@@ -354,9 +401,11 @@ if __name__ == '__main__':
         with open("moveHistory.txt", "w") as f:
             for move in path:
                 f.write(f"{move}\n")
-        with open("autoMove.txt", "w") as f:
-                f.write(f"{ai.getMoves()}\n")
-        
     except:
-        print("Error writing file")
+        print("Error writing moveHistory file")
 
+    try:
+        with open("autoMove.txt", "w") as f:
+            f.write(f"{ai.getMoves()}\n")
+    except:
+        print("Error writing autoMove file")
