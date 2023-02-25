@@ -146,6 +146,7 @@ class AI:
     originalBoard = np.zeros((0,0))
     startPosition = None
     goals = None
+    visitedStates = dict()
     
     def __init__(self, sokoban :Sokoban):
         self.board =  copy.deepcopy(sokoban.board)
@@ -153,23 +154,23 @@ class AI:
         self.startPosition = sokoban.playerPosition
         self.goals = sokoban.goals
         self.deadlock = self.Deadlock(self.board, self.goals)
+        self.visitedStates = dict()
 
     def dfsSolver(self):
         startTime = time.time()
         path = list()
-        board = self.board
-        visitedStates = dict()
+        self.visitedStates = dict()
 
         # count deadlock box Count
         boxCount = [0] * (len(self.deadlock.hashToLimit))
-        for i, row in enumerate(board):
+        for i, row in enumerate(self.board):
             for j, elem in enumerate(row):
                 if elem == g.BOXES:
                     boxCount[self.deadlock.counterHash[i][j]]+=1
 
-        def finished(board):
+        def finished():
             for goal in self.goals:
-                if not board[goal[0]][goal[1]] == g.BOXES:
+                if not self.board[goal[0]][goal[1]] == g.BOXES:
                     return False
             return True        
 
@@ -177,33 +178,33 @@ class AI:
             # if time.time() - startTime  > g.TIME_LIMIT:
             #     return False
         
-            if finished(board):
+            if finished():
                 print("Finished solving")
                 return True
             
-            moves, normalized = self.generateAllMoves(newPosition, board)
+            moves, normalized = self.generateAllMoves(newPosition, self.board)
             
             # I"m not sure about this
-            key = self.getState(board, normalized)
-            if visitedStates.setdefault(key, False):
+            key = self.getState(self.board, normalized)
+            if self.visitedStates.setdefault(key, False):
                 print(f"this is a visited state with move {newPosition}")
                 return False
-            visitedStates[key] = True
+            self.visitedStates[key] = True
 
             print(f"Possible moves {moves}")
-            print("Board state, all possible moves marked with a '.' ")
-            printBoard(board,moves, None)
+            print("self.board state, all possible moves marked with a '.' ")
+            printBoard(self.board,moves, None)
 
             for move in moves:
                 path.append(move)
 
                 def moveBox(ob, nb):
-                    board[nb[0],nb[1]] = g.BOXES
+                    self.board[nb[0],nb[1]] = g.BOXES
                     newLimit =  self.deadlock.counterHash[nb[0],nb[1]]
                     oldLimit =  self.deadlock.counterHash[ob[0],ob[1]]
                     boxCount[newLimit]+=1
                     boxCount[oldLimit]-=1
-                    board[ob[0],ob[1]] = g.EMPTY
+                    self.board[ob[0],ob[1]] = g.EMPTY
                     return ob
 
                 newPos = None
@@ -218,27 +219,28 @@ class AI:
                 
                 if newPos == None: # go next move if deadlock state encountered
                     print("Deadlock detected")
+                    path.pop()
                     continue
                 
-                print(f"Box moved {move} \nhere's board state")
-                printBoard(board,None, newPos)
+                print(f"Box moved {move} \nhere's self.board state")
+                printBoard(self.board,None, newPos)
 
                 if dfs(newPos):
                     return True
                 path.pop()
 
                 if move[2] == g.UP:
-                    board[move[0]-2,move[1]] = g.EMPTY
-                    board[move[0]-1,move[1]] = g.BOXES
+                    self.board[move[0]-2,move[1]] = g.EMPTY
+                    self.board[move[0]-1,move[1]] = g.BOXES
                 if move[2] == g.DOWN:
-                    board[move[0]+2,move[1]] = g.EMPTY
-                    board[move[0]+1,move[1]] = g.BOXES
+                    self.board[move[0]+2,move[1]] = g.EMPTY
+                    self.board[move[0]+1,move[1]] = g.BOXES
                 if move[2] == g.LEFT:
-                    board[move[0],move[1]-2] = g.EMPTY
-                    board[move[0],move[1]-1] = g.BOXES
+                    self.board[move[0],move[1]-2] = g.EMPTY
+                    self.board[move[0],move[1]-1] = g.BOXES
                 if move[2] == g.RIGHT:
-                    board[move[0],move[1]+2] = g.EMPTY
-                    board[move[0],move[1]+1] = g.BOXES
+                    self.board[move[0],move[1]+2] = g.EMPTY
+                    self.board[move[0],move[1]+1] = g.BOXES
 
             return False
 
@@ -342,14 +344,16 @@ class AI:
     uses BFS to find a path from origin to move
     '''
     def getMoves(self, moveList):
+        print("\nconverting move list to directions on keyboard\n")
         tempBoard =  copy.deepcopy(self.originalBoard)
         ret = str()
         prev = self.startPosition
         for move in moveList:
             path = self.bfsPath(prev, move, tempBoard)
-            if path == None:
-                continue
+            print(f"path obtained: {path}")
+            ret += path
             ret += numToLetMove(move[2])
+            print(f"Current move History: {ret}")
             if move[2] == g.UP:
                 prev = [move[0]-1,move[1]]
                 boxLoc = [move[0]-2,move[1]]
@@ -358,46 +362,60 @@ class AI:
                 boxLoc = [move[0]+2,move[1]]
             if move[2] == g.LEFT:
                 prev = [move[0],move[1]-1]
-                boxLoc = [move[0],move[1]-1]
+                boxLoc = [move[0],move[1]-2]
             if move[2] == g.RIGHT:
                 prev = [move[0],move[1]+1]
-                boxLoc = [move[0],move[1]+1]
+                boxLoc = [move[0],move[1]+2]
             tempBoard[prev[0]][prev[1]]= g.EMPTY
             tempBoard[boxLoc[0]][boxLoc[1]]=g.BOXES
         return ret
 
     def bfsPath(self, origin, dest, board):
-        visited = [[None] * board.shape[1]] * board.shape[0]
+        if origin[0] == dest[0] and origin[1] == dest[1]:
+            return  ""
+        visited = [[None for i in range(board.shape[1])] for j in range(board.shape[0]) ]
         q = deque()
-        q.append(origin)
         visited[origin[0]][origin[1]] = True
+
+        neighbors = getNeigbors(board, origin)
+        for n in neighbors:
+            if board[n[0]][n[1]] != g.EMPTY or visited[n[0]][n[1]]:
+                continue
+            else:
+                temp = list(origin)
+                temp.append(n[2])
+                visited[n[0]][n[1]] = temp
+                q.append(n)
         
         while(len(q)):
             cur = q.popleft()
             if cur[0] == dest[0] and cur[1] == dest[1]:
+                print(f"Destination from{origin} to {dest} found")
                 path = list() # trace back path
-                def findPath(node):
-                    if node == origin:
-                        path.reverse()
-                        ret = str()
-                        for i in path:
-                            ret += numToLetMove(i)
-                        return ret
-                    path.append(visited[cur[0]][cur[1]][2])
-                    return findPath(visited[cur[0]][cur[1]])
-                return findPath(cur)
+                while ( visited[cur[0]][cur[1]] != True):
+                    path.append(visited[cur[0]][cur[1]][2]) # get only the direction
+                    cur = visited[cur[0]][cur[1]]
+                path.reverse()
+                ret = str()
+                for i in path:
+                    ret += numToLetMove(i)
+                print(ret)
+                return ret
 
             neighbors = getNeigbors(board, cur)
             for n in neighbors:
                 if board[n[0]][n[1]] != g.EMPTY or visited[n[0]][n[1]]:
-                    print(f"n {n} board: {board[n[0]][n[1]]} and visited: { visited[n[0]][n[1]]}")
+                    # print(f"n {n} board: {board[n[0]][n[1]]} and visited: { visited[n[0]][n[1]]}")
                     continue
                 else:
-                    visited[n[0]][n[1]] = [cur[0],cur[1]]
+                    cur[2] = n[2]
+                    visited[n[0]][n[1]] = copy.deepcopy(cur)
                     q.append(n)
                 
             if visited[cur[0]][cur[1]] == None:
                 continue
+        print("no path found through BFS")
+        return ""
             
 def getNeigbors(board, tile):
         #up, down, left, right
@@ -450,7 +468,7 @@ def printDeadlockBoard(board, deadlock, playerLocation):
     
 if __name__ == '__main__':
     fileLoc = None
-    #fileLoc= 'sokoban00.txt'
+    fileLoc= 'maps/3.txt'
     if fileLoc == None:
         if len(sys.argv) == 1:
             fileLoc  = input("Please enter file location: ")
