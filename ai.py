@@ -153,6 +153,7 @@ class AI:
     visitedStates = dict()
     time = g.TIME_LIMIT
     failedDueToTimeout = False
+    elapsedTime = None
     
     def __init__(self, sokoban :Sokoban):
         self.board =  copy.deepcopy(sokoban.board)
@@ -161,6 +162,9 @@ class AI:
         self.goals = sokoban.goals
         self.deadlock = self.Deadlock(self.board, self.goals)
         self.visitedStates = dict()
+        self.time = g.TIME_LIMIT
+        self.failedDueToTimeout = False
+        self.elapsedTime = g.TIME_LIMIT
 
     def dfsSolver(self):
         startTime = time.time()
@@ -184,8 +188,13 @@ class AI:
             if time.time() - startTime  > g.TIME_LIMIT:
                 self.failedDueToTimeout = True
                 return False
-        
+            
+            if time.time() - self.elapsedTime > 60:
+                print(f"Time elapsed: { (time.time()-startTime) / 60} minutes")
+                self.elapsedTime = time.time()
+
             if finished():
+                self.elapsedTime = time.time() - startTime
                 print("Finished solving")
                 return True
             
@@ -250,7 +259,7 @@ class AI:
                     self.board[move[0],move[1]+1] = g.BOXES
 
             return False
-
+        self.elapsedTime = time.time()
         if dfs(self.startPosition):
             return path
 
@@ -489,17 +498,19 @@ if __name__ == '__main__':
     printBoard(ai.board, None ,ai.startPosition)
     printDeadlockBoard(ai.board,ai.deadlock.deadlockMarked ,ai.startPosition)
     path = ai.dfsSolver()
+    if ai.failedDueToTimeout:
+        print("Timed out")
     try:
         with open("moveHistory.txt", "w") as f:
             for move in path:
                 f.write(f"{move}\n")
-    except:
-        print("Error writing moveHistory file")
+    except Exception as e:
+        print(f"Error writing moveHistory file {e}")
 
     string = ai.getMoves(path)
 
     try:
         with open("autoMove.txt", "w") as f:
             f.write(f"{string}\n")
-    except:
-        print("Error writing autoMove file")
+    except Exception as e:
+        print(f"Error writing autoMove file {e}")

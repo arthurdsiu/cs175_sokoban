@@ -28,12 +28,12 @@ if __name__ == '__main__':
         print(f"Calling DFS solver on file {f}, board shape {game.board.shape}")
         moveList = ai.dfsSolver()
         if moveList:
-            print(f"DFS success, checking solution for {moveList}")
+            print(f"DFS success, checking solution")
             moveString = ai.getMoves(moveList)
-            print(f"move string: {moveString}")
+            # print(f"move string: {moveString}")
             game.autoMove(moveString)
             if game.completed:
-                print("Map succesfully solved")
+                print("\nMap succesfully solved")
                 totalSolved += 1
             else:
                  print("Error, DFS return true, but game state is incomplete, exiting program")

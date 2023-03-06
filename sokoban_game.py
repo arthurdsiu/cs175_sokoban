@@ -130,7 +130,7 @@ class Sokoban:
     def autoMove(self, moves):
         # print("Beginning Auto Move")
         for i,v in enumerate(moves):
-            print(v,end="")
+            # print(v,end="")
             if v == 'U':
                 self.movePlayer(g.UP)
             if v == 'D':
