@@ -9,6 +9,11 @@ class Sokoban:
     moveHistory= ''
     
     def __init__(self, inputLocation: str):
+        self.board = np.array((0,0))
+        self.playerPosition = (0,0) #(y,x)
+        self.goals = list()
+        self.completed = False
+        self.moveHistory= ''
         try:
             with open(inputLocation, "r") as f:
                 inputLines = [i.strip() for i in f.readlines()]
@@ -123,7 +128,7 @@ class Sokoban:
         print()
 
     def autoMove(self, moves):
-        print("Beginning Auto Move")
+        # print("Beginning Auto Move")
         for i,v in enumerate(moves):
             print(v,end="")
             if v == 'U':
@@ -134,5 +139,5 @@ class Sokoban:
                 self.movePlayer(g.LEFT)
             if v == 'R':
                 self.movePlayer(g.RIGHT)
-        print("\n\nAuto move finished")
+        # print("\n\nAuto move finished")
             

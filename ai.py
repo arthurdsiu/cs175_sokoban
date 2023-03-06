@@ -16,7 +16,7 @@ class AI:
         deadlockByGoals = np.array((0,0))
         deadlockMarked = np.array((0,0))
         counterHash = np.array((0,0))
-        hashToLimit = list()
+        hashNameToBoxLimitCount = list()
 
         def __init__(self, board, goals):
             self.deadlockByGoals = np.ones((len(goals), board.shape[0], board.shape[1]), dtype=bool)
@@ -89,47 +89,51 @@ class AI:
 
             visited = np.zeros(self.counterHash.shape, dtype=bool)
 
-            def labelCountToHash(cur, curCount, hash):
-                if visited[cur[0]][cur[1]]:
+            def labelCountToHash(curMove, boxLimit, name, visited):
+                if visited[curMove[0]][curMove[1]]:
                     return # visited already
-                visited[cur[0]][cur[1]] = True
-                if curCount == -1:
-                    curCount = self.counterHash[cur[0]][cur[1]]
-                if self.counterHash[cur[0]][cur[1]] != curCount:
-                    return # wrong area
+                if self.counterHash[curMove[0]][curMove[1]] != boxLimit:
+                    return # wrong area, reachable box count doesn't match
+                visited[curMove[0]][curMove[1]] = True
+                
 
-                self.counterHash[cur[0]][cur[1]] = hash # counter -> hash
+                self.counterHash[curMove[0]][curMove[1]] = name # [i][j]aka hash -> name
 
-                for n in getNeigbors(board, cur):
-                    if n:
-                        labelCountToHash(n, curCount, hash) # visit all neigbors
-                return curCount
+                for nextMove in getNeigbors(board, curMove):
+                    if nextMove:
+                        labelCountToHash(nextMove, boxLimit, name, visited) # visit all neigbors
+                return boxLimit
 
-
+            # Mark all deadlock cells first. 0 is their capacity. We'll use it as their name as well
             for i in range(self.counterHash.shape[0]):
                 for j in range(self.counterHash.shape[1]):
                     if self.counterHash[i][j] == 0: 
-                        visited[i][j] = True  # don't create new cells for 0
-            hash = 1
-            self.hashToLimit.append(0)
+                        visited[i][j] = True
+
+            # Name cells starting at 1
+            # cells named 0 represent deadlock cells with 0 box limit
+            self.hashNameToBoxLimitCount.append(0)
+            name = 1
             for i in range(self.counterHash.shape[0]):
                 for j in range(self.counterHash.shape[1]):
                     if visited[i][j]:
-                        continue
-                    curCount = labelCountToHash([i,j], -1, hash)
-                    self.hashToLimit.append(curCount)
-                    hash+=1 # or hash = len(hashToLimit)
+                        continue # skip over deadlock cells and cells we've named already
+                    boxLimit = self.counterHash[i][j]
+                    self.hashNameToBoxLimitCount.append(boxLimit) # record the number of boxes
+                    labelCountToHash([i,j], boxLimit, name, visited) # replace number of boxes with name instead
+                    
+                    name+=1 # or name = len(hashToLimit)
 
             # debuggging
-            for i, table in enumerate(self.deadlockByGoals):
-                print(f"\ngoal {i} deadlock table")
-                printDeadlockBoard(board, table, goals[i])
-            print("\ncompiled deadlock table")
-            printDeadlockBoard(board, self.deadlockMarked, goals[0])
-            print("\ncounter table")
-            output = self.counterHash.tolist()
-            for i in output:
-                print(i)
+            # for i, table in enumerate(self.deadlockByGoals):
+            #     print(f"\ngoal {i} deadlock table")
+            #     printDeadlockBoard(board, table, goals[i])
+            # print("\ncompiled deadlock table")
+            # printDeadlockBoard(board, self.deadlockMarked, goals[0])
+            # print("\ncounter table")
+            # output = self.counterHash.tolist()
+            # for i in output:
+            #     print(i)
 
         def checkIfCountDeadlock(self, boxCounter, oldBoxPos, newBoxPos):
             oldHash = self.counterHash[oldBoxPos[0]][oldBoxPos[1]]
@@ -147,6 +151,8 @@ class AI:
     startPosition = None
     goals = None
     visitedStates = dict()
+    time = g.TIME_LIMIT
+    failedDueToTimeout = False
     
     def __init__(self, sokoban :Sokoban):
         self.board =  copy.deepcopy(sokoban.board)
@@ -162,7 +168,7 @@ class AI:
         self.visitedStates = dict()
 
         # count deadlock box Count
-        boxCount = [0] * (len(self.deadlock.hashToLimit))
+        boxCount = [0] * (len(self.deadlock.hashNameToBoxLimitCount))
         for i, row in enumerate(self.board):
             for j, elem in enumerate(row):
                 if elem == g.BOXES:
@@ -172,11 +178,12 @@ class AI:
             for goal in self.goals:
                 if not self.board[goal[0]][goal[1]] == g.BOXES:
                     return False
-            return True        
+            return True
 
         def dfs(newPosition):
-            # if time.time() - startTime  > g.TIME_LIMIT:
-            #     return False
+            if time.time() - startTime  > g.TIME_LIMIT:
+                self.failedDueToTimeout = True
+                return False
         
             if finished():
                 print("Finished solving")
@@ -187,13 +194,13 @@ class AI:
             # I"m not sure about this
             key = self.getState(self.board, normalized)
             if self.visitedStates.setdefault(key, False):
-                print(f"this is a visited state with move {newPosition}")
+                # print(f"this is a visited state with move {newPosition}")
                 return False
             self.visitedStates[key] = True
 
-            print(f"Possible moves {moves}")
-            print("self.board state, all possible moves marked with a '.' ")
-            printBoard(self.board,moves, None)
+            # print(f"Possible moves {moves}")
+            # print("self.board state, all possible moves marked with a '.' ")
+            # printBoard(self.board,moves, None)
 
             for move in moves:
                 path.append(move)
@@ -218,12 +225,12 @@ class AI:
                     newPos = moveBox([move[0],move[1]+1], [move[0],move[1]+2])
                 
                 if newPos == None: # go next move if deadlock state encountered
-                    print("Deadlock detected")
+                    # print("Deadlock detected")
                     path.pop()
                     continue
                 
-                print(f"Box moved {move} \nhere's self.board state")
-                printBoard(self.board,None, newPos)
+                # print(f"Box moved {move} \nhere's self.board state")
+                # printBoard(self.board,None, newPos)
 
                 if dfs(newPos):
                     return True
@@ -256,7 +263,7 @@ class AI:
     use it state space based on position parameter passed to 
     '''
     def generateAllMoves(self, position, board):
-        #find connected whitespace
+        # find connected whitespace
         cur = position
         visited = np.zeros((board.shape))
         connectedSpace = list()
@@ -297,15 +304,15 @@ class AI:
 
         minElemY = min(connectedSpace, key=lambda x: x[0])
         normalized = min(filter( lambda x: x[0]== minElemY[0], connectedSpace), key=lambda x: x[1])
-        #found all connected space
-        #now we need to find all neighboring boxes of the connected space
+        # found all connected space
+        # now we need to find all neighboring boxes of the connected space
         pushable = [] #check whether box can be pushed
         
         # print(f"normalized:{normalized}")
         for box in boxes:
             neighbors = getNeigbors(board, box)
-            #print(f"Box{box} neribors:{neighbors}")
-            #neighbors: up, down, left, right
+            # print(f"Box{box} neribors:{neighbors}")
+            # neighbors: up, down, left, right
             opposite = [1,0,3,2]
             for i,n in enumerate(neighbors):
                 # print(f"neigbor:{n}, visited: {visited[n[0]][n[1]]}, oppositEmpty: {isEmpty(neighbors[opposite[i]])}")
@@ -344,16 +351,16 @@ class AI:
     uses BFS to find a path from origin to move
     '''
     def getMoves(self, moveList):
-        print("\nconverting move list to directions on keyboard\n")
+        # print("\nconverting move list to directions on keyboard\n")
         tempBoard =  copy.deepcopy(self.originalBoard)
         ret = str()
         prev = self.startPosition
         for move in moveList:
             path = self.bfsPath(prev, move, tempBoard)
-            print(f"path obtained: {path}")
+            # print(f"path obtained: {path}")
             ret += path
             ret += numToLetMove(move[2])
-            print(f"Current move History: {ret}")
+            # print(f"Current move History: {ret}")
             if move[2] == g.UP:
                 prev = [move[0]-1,move[1]]
                 boxLoc = [move[0]-2,move[1]]
@@ -390,7 +397,7 @@ class AI:
         while(len(q)):
             cur = q.popleft()
             if cur[0] == dest[0] and cur[1] == dest[1]:
-                print(f"Destination from{origin} to {dest} found")
+                # print(f"Destination from{origin} to {dest} found")
                 path = list() # trace back path
                 while ( visited[cur[0]][cur[1]] != True):
                     path.append(visited[cur[0]][cur[1]][2]) # get only the direction
@@ -399,7 +406,7 @@ class AI:
                 ret = str()
                 for i in path:
                     ret += numToLetMove(i)
-                print(ret)
+                # print(ret)
                 return ret
 
             neighbors = getNeigbors(board, cur)
@@ -414,7 +421,7 @@ class AI:
                 
             if visited[cur[0]][cur[1]] == None:
                 continue
-        print("no path found through BFS")
+        # print("no path found through BFS")
         return ""
             
 def getNeigbors(board, tile):
@@ -468,7 +475,7 @@ def printDeadlockBoard(board, deadlock, playerLocation):
     
 if __name__ == '__main__':
     fileLoc = None
-    fileLoc= 'maps/3.txt'
+    # fileLoc= 'maps/3.txt'
     if fileLoc == None:
         if len(sys.argv) == 1:
             fileLoc  = input("Please enter file location: ")
@@ -490,9 +497,9 @@ if __name__ == '__main__':
         print("Error writing moveHistory file")
 
     string = ai.getMoves(path)
+
     try:
         with open("autoMove.txt", "w") as f:
-            
             f.write(f"{string}\n")
     except:
         print("Error writing autoMove file")

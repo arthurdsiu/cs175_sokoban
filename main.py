@@ -35,7 +35,7 @@ if __name__ == '__main__':
                 with open(input_location, "r") as f:
                     input_lines = [i.strip() for i in f.readlines()]
             except FileNotFoundError:
-                 print("Error Accessing File")
+                print("Error Accessing File")
             game.autoMove(input_lines[0])
         if(char == 'q'):
             cont = False
