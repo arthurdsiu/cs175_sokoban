@@ -6,6 +6,7 @@ import os
 # = wall
 . = storage
 $ = box
+* = box on storage
 @ = player location
 \n
 '''
@@ -74,6 +75,9 @@ if __name__ == '__main__':
                     if char == '.':
                         storage.append([rowIndex,colIndex])
                     if char == '$':
+                        box.append([rowIndex,colIndex])
+                    if char == '*':
+                        storage.append([rowIndex,colIndex])
                         box.append([rowIndex,colIndex])
                     if char == '@' or char == '+':
                         playerLocation = [rowIndex,colIndex]
