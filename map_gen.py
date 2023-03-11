@@ -11,81 +11,97 @@ $ = box
 \n
 '''
 if __name__ == '__main__':
+    fileLoc = "map_raw"
     if len(sys.argv) == 1:
-        fileLoc  = input("Please enter file location: ")
+        print(f"Running map script on default folder location: {fileLoc}")
         
     else:
         fileLoc = sys.argv[1]
-
-    mapNum = None
-    rowIndex = None
-    box = None
-    wall = None
-    storage = None
-    playerLocation = None
-    rowSize = None
-    colSize = None
-    outputLocation = os.getcwd() + "/maps/"
+        print(f"Running map script on custom folder location: {fileLoc}")
     
-    def dumpMap():
-        try:
-            with open(os.path.join(outputLocation, str(mapNum)+".txt"), "w") as o:
-                o.write(f"{rowIndex+1} {colSize}\n")
+    rawMapsDir = os.path.join(os.getcwd(), fileLoc)
+    
+    for dirName in os.listdir(rawMapsDir):
+        rawMapFile = os.path.join(rawMapsDir, dirName) # file to read from
+        if os.path.isfile(rawMapFile):
+            outputPath = os.path.join(os.getcwd(), dirName.split('.')[0]) # folder to write to
+            
 
-                def writeLists(someList):
-                    o.write(f"{len(someList)} ")
-                    for elem in someList:
-                        o.write(f"{elem[0]+1} {elem[1]+1} ")
-                    o.write("\n")
+            if not os.path.exists(outputPath):
+                print(f'Path does not exist, creating directory {outputPath}')
+                os.mkdir(outputPath)
 
-                writeLists(wall)
-                writeLists(box)
-                writeLists(storage)
-                o.write(f"{playerLocation[0]+1} {playerLocation[1]+1}")
-                
-        except Exception as e:
-            print(f"Failed to write out map {mapNum}: {e}")
-    try:
-        with open(fileLoc, "r") as f:
-            for line in f.readlines():
-                start= False
-                if line == "\n":
-                    if start:
-                        start = False
-                        continue
-                    else:
-                        start = True
-                        continue
-
-                if line[0] == ";":
-                    if mapNum != None:
-                        dumpMap()
-                    mapNum = int(line.split()[1])
+            try:
+                with open(rawMapFile, "r") as f:
                     rowIndex =0
-                    box = list()
+                    colSize = 0
                     wall = list()
+                    box = list()
                     storage = list()
                     playerLocation = list()
-                    colSize = 0
-                    continue
+                    
+                    mapNum = None
+                    for line in f.readlines():
+                        start= False
+                        if line == "\n":
+                            if start:
+                                start = False
+                                continue
+                            else:
+                                start = True
+                                continue
 
-                for colIndex, char in enumerate(line):
-                    if char == '#':
-                        wall.append([rowIndex,colIndex])
-                    if char == '.':
-                        storage.append([rowIndex,colIndex])
-                    if char == '$':
-                        box.append([rowIndex,colIndex])
-                    if char == '*':
-                        storage.append([rowIndex,colIndex])
-                        box.append([rowIndex,colIndex])
-                    if char == '@' or char == '+':
-                        playerLocation = [rowIndex,colIndex]
-                colSize = max (len(line),colSize )
-                rowIndex+=1
-                
+                        if line[0] == ";":
+                            if mapNum != None:
 
-    except FileNotFoundError:
-        print("Error Accessing File")
+                                def dumpMap(rowIndex, colSize, wall, box, storage, playerLocation):
+                                    try:
+                                        with open(os.path.join(outputPath, str(mapNum)+".txt"), "w") as o:
+                                            o.write(f"{rowIndex+1} {colSize}\n")
+
+                                            def writeLists(someList):
+                                                o.write(f"{len(someList)} ")
+                                                for elem in someList:
+                                                    o.write(f"{elem[0]+1} {elem[1]+1} ")
+                                                o.write("\n")
+
+                                            writeLists(wall)
+                                            writeLists(box)
+                                            writeLists(storage)
+                                            o.write(f"{playerLocation[0]+1} {playerLocation[1]+1}")
+                                            
+                                    except Exception as e:
+                                        print(f"Failed to write out map {mapNum}: {e}")
+
+                                dumpMap(rowIndex, colSize, wall, box, storage, playerLocation) # write out previous map
+                            # clear out old map/ init variables if first map
+                            rowIndex =0
+                            colSize = 0
+                            wall = list()
+                            box = list()
+                            storage = list()
+                            playerLocation = list()
+                            
+                            mapNum = int(line.split()[1])
+                            continue
+
+                        for colIndex, char in enumerate(line):
+                            if char == '#':
+                                wall.append([rowIndex,colIndex])
+                            if char == '.':
+                                storage.append([rowIndex,colIndex])
+                            if char == '$':
+                                box.append([rowIndex,colIndex])
+                            if char == '*':
+                                storage.append([rowIndex,colIndex])
+                                box.append([rowIndex,colIndex])
+                            if char == '@' or char == '+':
+                                playerLocation = [rowIndex,colIndex]
+                        colSize = max (len(line),colSize )
+                        rowIndex+=1
+                        
+
+            except FileNotFoundError as e:
+                print(f"Error Accessing File {e}")
 
     print("finished")
