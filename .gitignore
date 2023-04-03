@@ -157,3 +157,6 @@ cython_debug/
 moveHistory.txt
 move.txt
 autoMove.txt
+*.out
+sokoban_game
+.vscode/tasks.json
